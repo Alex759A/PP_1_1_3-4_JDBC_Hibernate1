@@ -40,38 +40,53 @@ public class UserDaoJDBCImpl implements UserDao {
     // Добавление User в таблицу
     public void saveUser(String name, String lastName, byte age) {
         try (PreparedStatement pstm = conn.prepareStatement("INSERT INTO users (name, lastName, age) VALUES (?, ?, ?)")) {
+            conn.setAutoCommit(false);
             pstm.setString(1, name);
             pstm.setString(2, lastName);
             pstm.setByte(3, age);
             pstm.executeUpdate();
+            conn.commit();
+
         } catch (SQLException e) {
             e.printStackTrace();
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
         }
     }
 
     // Удаление User из таблицы ( по id )
-    public void removeUserById(long id) {
+    public void removeUserById(long id)  {
         try (PreparedStatement pstm = conn.prepareStatement("DELETE FROM users WHERE id = ?")) {
+
             pstm.setLong(1, id);
             pstm.executeUpdate();
+
         } catch (SQLException e) {
             e.printStackTrace();
+
         }
     }
 
     // Получение всех Users из таблицы
-    public List<User> getAllUsers() {
+    public List<User> getAllUsers() throws SQLException {
         List<User> users = new ArrayList<>();
 
         try (ResultSet resultSet = conn.createStatement().executeQuery("SELECT * FROM users")) {
+            conn.setAutoCommit(false);
             while(resultSet.next()) {
                 User user = new User(resultSet.getString("name"),
                         resultSet.getString("lastName"), resultSet.getByte("age"));
                 user.setId(resultSet.getLong("id"));
                 users.add(user);
+            conn.commit();
+
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            conn.rollback();
         }
 
         return users;
